@@ -49,7 +49,7 @@ services:
 
   store:
     container_name: store
-    build: ../../store
+    build: ../../lab2
     depends_on:
       - postgres_db
     restart: always
@@ -90,14 +90,13 @@ services:
       MQTT_BROKER_HOST: "mqtt"
       MQTT_BROKER_PORT: 1883
       MQTT_TOPIC: "processed_data_topic"
-      BATCH_SIZE: 5
+      BATCH_SIZE: 1
     ports:
       - "9000:8000"
     networks:
       mqtt_network:
       hub_store:
       hub_redis:
-
 
 networks:
   mqtt_network:
