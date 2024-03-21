@@ -1,5 +1,6 @@
 version: "3.9"
 name: "road_vision"
+
 services:
   mqtt:
     image: eclipse-mosquitto
@@ -14,7 +15,6 @@ services:
     networks:
       mqtt_network:
 
-
   fake_agent:
     container_name: agent
     build: ../
@@ -23,12 +23,10 @@ services:
     environment:
       MQTT_BROKER_HOST: "mqtt"
       MQTT_BROKER_PORT: 1883
-      MQTT_AGENT_TOPIC: "agent_data_topic"
-      MQTT_PARKING_TOPIC: "parking_data_topic"
+      MQTT_TOPIC: "agent_data_topic"
       DELAY: 0.1
     networks:
       mqtt_network:
-
 
 networks:
   mqtt_network:

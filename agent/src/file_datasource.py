@@ -1,50 +1,43 @@
 from csv import reader
 from datetime import datetime
+
+from domain.ground_clearance import GroundClearance
+from domain.aggregated_data import AggregatedData
 from domain.accelerometer import Accelerometer
 from domain.gps import Gps
-from domain.aggregated_data import AggregatedData
-from domain.parking import Parking
-import config
-
 
 class FileDatasource:
-    def __init__(
-        self,
-        accelerometer_filename: str,
-        gps_filename: str,
-        parking_filename: str
-    ) -> None:
+    def __init__(self, accelerometer_filename: str, gps_filename: str, ground_clearance_filename: str) -> None:
         self.accelerometer_filename = accelerometer_filename
         self.gps_filename = gps_filename
-        self.parking_filename = parking_filename
+        self.ground_clearance_filename = ground_clearance_filename
+        self.cache_data = {}
 
-    def read(self, accelerometer_data, gps_data, parking_data) -> (AggregatedData, Parking):
-        """Метод повертає дані отримані з датчиків"""
-        x, y, z = map(int, next(accelerometer_data))
-        longitude, latitude = map(float, next(gps_data))
-        empty_count = int(next(parking_data)[0])
-        return AggregatedData(
-            Accelerometer(x, y, z),
-            Gps(longitude, latitude),
-            datetime.now(),
-            config.USER_ID
-        ), Parking(
-            empty_count,
-            Gps(longitude, latitude)
-        )
+    def read(self) -> AggregatedData:
+        try:
+            accelerometer_data = next(reader(self.cache_data["accelerometer"]))
+            gps_data = next(reader(self.cache_data["gps"]))
+            ground_clearance = next(reader(self.cache_data["ground_clearance"]))
 
-    def startReading(self):
-        """Метод повинен викликатись перед початком читання даних"""
-        accelerometer_file = open(self.accelerometer_filename, "r")
-        gps_file = open(self.gps_filename, "r")
-        parking_file = open(self.parking_filename, "r")
-        next(accelerometer_file)
-        next(gps_file)
-        next(parking_file)
-        accelerometer_data, gps_data, parking_data = reader(accelerometer_file), reader(gps_file), reader(parking_file)
-        return accelerometer_data, gps_data, parking_data, accelerometer_file, gps_file, parking_file
+            x, y, z = map(int, accelerometer_data)
+            longitude, latitude = map(float, gps_data)
+            length = int(ground_clearance[0])
+            return AggregatedData(accelerometer=Accelerometer(x=x, y=y, z=z),
+                                  gps=Gps(longitude=longitude, latitude=latitude),
+                                  ground_clearance=GroundClearance(length, Gps(longitude=longitude, latitude=latitude)),
+                                  timestamp=datetime.now())
+        except StopIteration:
+            self.stopReading()
+            StopIteration("No data")
+        except ValueError as error:
+            ValueError(error)
 
-    def stopReading(self, *args):
-        """Метод повинен викликатись для закінчення читання даних"""
-        for file in args:
-            file.close()
+    def startReading(self, *args, **kwargs):
+        self.cache_data["accelerometer"] = open(self.accelerometer_filename, 'r')
+        self.cache_data["gps"] = open(self.gps_filename, 'r')
+        self.cache_data["ground_clearance"] = open(self.ground_clearance_filename, 'r')
+
+    def stopReading(self, *args, **kwargs):
+        self.cache_data["accelerometer"].close()
+        self.cache_data["gps"].close()
+        self.cache_data["ground_clearance"].close()
