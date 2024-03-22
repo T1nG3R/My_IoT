@@ -21,25 +21,23 @@ class StoreApiAdapter(StoreGateway):
         Returns:
             bool: True if the data is successfully saved, False otherwise.
         """
-        print("Hub: sending processed data")
-
+        # Implement it
+        endpoint_url = f"{self.api_base_url}/processed_agent_data/"
         try:
-            # Prepare the data to be sent
-            url = f"{self.api_base_url}/processed_agent_data/"
-            headers = {'Content-Type': 'application/json'}
-            # Make a POST request to the Store API endpoint with the processed data
-            data = f"[{','.join([i.model_dump_json() for i in processed_agent_data_batch])}]"
-            response = requests.post(url, data=data, headers=headers)
-
-            # Check if the request was successful
-            if 200 <= response.status_code < 300:
-                logging.info("Data successfully saved.")
+            response = requests.post(
+                endpoint_url,
+                data=json.dumps(
+                    processed_agent_data_batch, default=pydantic_core.to_jsonable_python
+                ),
+            )
+            if response.status_code in (200, 201):
+                # logging.info("Processed road data saved successfully.")
                 return True
             else:
-                logging.error("Failed to save data.")
+                logging.info(
+                    f"Failed to save processed road data. Status code: {response.status_code}"
+                )
                 return False
-
         except requests.exceptions.RequestException as e:
-            logging.exception(f"An error occurred: {e}")
+            logging.info(f"Failed to connect to the Store API: {e}")
             return False
-
